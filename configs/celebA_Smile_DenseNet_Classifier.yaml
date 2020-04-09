@@ -1,0 +1,17 @@
+###########
+# Classifier #
+###########
+
+image_dir: '/pghbio/dbmi/batmanlab/singla/MICCAI_2019/GAN_Interpretability/data/celebA/images' #'./data/CelebA/images/'
+image_label_dict: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/ Smiling_binary_classification.txt'
+train: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/train_ids.npy'
+test: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/test_ids.npy'
+
+log_dir: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/output/classifier/CelebA-Smile'
+name: 'DenseNet-121'
+
+num_channel: 3
+input_size: 128
+batch_size: 32
+epochs: 5
+ckpt_dir_continue: ''
