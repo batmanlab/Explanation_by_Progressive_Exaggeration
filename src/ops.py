@@ -1,6 +1,5 @@
 import sys 
 import os
-sys.path.append(os.path.abspath("/pghbio/dbmi/batmanlab/singla/MICCAI_2019/GAN_Interpretability/src/common"))
 import tensorflow as tf
 import tensorflow.contrib as contrib
 import tensorflow.contrib.slim as slim
