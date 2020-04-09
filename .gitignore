@@ -1,0 +1,5 @@
+startupjupyter
+*.pyc
+output/
+*.zip
+*.npy
