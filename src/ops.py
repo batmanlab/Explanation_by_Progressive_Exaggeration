@@ -181,4 +181,3 @@ def D_FirstResblock(name, inputs, nums_out, update_collection, is_down=True, is_
             temp =  tf.nn.avg_pool(temp, [1, 2, 2, 1], [1, 2, 2, 1], "SAME")
             temp = conv("identity", temp, nums_out, 1, 1, update_collection=update_collection, is_sn=is_sn)
     return inputs + temp
-                                                                                                              
