@@ -5,7 +5,7 @@ import os
 import pdb
 import yaml
 import tensorflow as tf
-from classifier.DenseNet_Again import pretrained_classifier
+from classifier.DenseNet import pretrained_classifier
 from utils import read_data_file, load_images_and_labels
 import argparse
 import warnings

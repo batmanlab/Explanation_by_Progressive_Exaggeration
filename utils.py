@@ -4,6 +4,9 @@ import numpy as np
 from tqdm import tqdm
 import scipy.misc as scm
 import pdb
+import os
+from glob import glob
+from collections import namedtuple
 
 def crop_center(img,cropx,cropy):
     y,x,z = img.shape
@@ -55,3 +58,36 @@ def load_images_and_labels(imgs_names, image_dir, n_class, attr_list, input_size
             pdb.set_trace()
     labels[np.where(labels==-1)] = 0
     return imgs, labels
+
+def inverse_image(img): 
+    img = (img + 1.) * 127.5
+    img[img > 255] = 255.
+    img[img < 0] = 0.
+    return img.astype(np.uint8)
+    
+def make3d(img, num_channel, image_size, row, col):
+    # img.shape = [row*col, h, w, c]
+    # final: [row*h, col*w, c]
+    if num_channel > 1:
+        img = np.reshape(img, [col,row,image_size,image_size,num_channel]) # [col, row, h, w, c]
+    else:
+        img = np.reshape(img, [col,row,image_size,image_size]) # [col, row, h, w]
+    img = unstack(img, axis=0) # col * [row, h, w, c]
+    img = np.concatenate(img, axis=2) # [row, h, col*w, c]
+    img = unstack(img, axis=0) # row * [h, col*w, c]
+    img = np.concatenate(img, axis=0) # [row*h, col*w, c]
+    return img
+
+
+def unstack(img, axis):
+    d =img.shape[axis]
+    arr = [np.squeeze(a,axis=axis) for a in np.split(img, d, axis=axis)]
+    return arr
+    
+def save_images(realA, realB, fakeB, cycA, sample_file, image_size=128, num_channel = 3):
+    img = np.concatenate((realA[:5,:,:,:],fakeB[:5,:,:,:], cycA[:5,:,:,:], realB[:5,:,:,:],
+                          realA[5:,:,:,:],fakeB[5:,:,:,:], cycA[5:,:,:,:], realB[5:,:,:,:]), axis=0)
+                          
+    img = make3d(img, num_channel=num_channel, image_size=image_size, row=5, col=8)                      
+    img = inverse_image(img)
+    scm.imsave(sample_file, img)
