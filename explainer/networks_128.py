@@ -1,3 +1,6 @@
+'''
+This network is build on top of SNGAN network implementation from: https://github.com/MingtaoGuo/sngan_projection_TensorFlow.git
+'''
 from ops import *
 from tensorflow.contrib.layers import flatten
 import pdb
