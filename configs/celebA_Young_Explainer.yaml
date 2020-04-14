@@ -28,5 +28,5 @@ save_summary: 20
 
 ckpt_dir_continue: './output/explainer/CelebA-Young-Binary'
 
-count_to_save: 100
+count_to_save: 20
 # number of samples to save while testing

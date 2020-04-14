@@ -103,7 +103,7 @@ def Train():
     
     fake_target_img, fake_target_img_embedding = G(x_source, train_phase, y_target, NUMS_CLASS)
     fake_source_img, fake_source_img_embedding = G(fake_target_img, train_phase, y_source, NUMS_CLASS)
-    fake_source_recons_img, fake_source_recons_img_embedding = G(x_source, train_phase, y_source, NUMS_CLASS)    
+    fake_source_recons_img, x_source_img_embedding = G(x_source, train_phase, y_source, NUMS_CLASS)    
     fake_target_logits = D(fake_target_img, y_t, NUMS_CLASS, None)    
     
     # ============= pre-trained classifier =============      
@@ -124,7 +124,7 @@ def Train():
     D_loss_GAN = discriminator_loss('hinge', real_source_logits, fake_target_logits) 
     G_loss_GAN = generator_loss('hinge', fake_target_logits)
     G_loss_cyc = l1_loss(x_source, fake_source_img) 
-    G_loss_rec = l2_loss(fake_source_recons_img_embedding, fake_source_img_embedding) #+  l1_loss(x_source, fake_source_recons_img) 
+    G_loss_rec = l2_loss(x_source_img_embedding, fake_source_img_embedding) #+  l1_loss(x_source, fake_source_recons_img) 
     G_loss = (G_loss_GAN * lambda_GAN) + (G_loss_rec * lambda_cyc) + (G_loss_cyc * lambda_cyc) + (fake_evaluation * lambda_cls) + (recons_evaluation * lambda_cls)
     D_loss = (D_loss_GAN * lambda_GAN) 
         

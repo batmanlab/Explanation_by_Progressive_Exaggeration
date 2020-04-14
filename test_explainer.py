@@ -16,6 +16,7 @@ import random
 import warnings
 import argparse
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
+np.random.seed(0)
 
 def convert_ordinal_to_binary(y,n):
     y = np.asarray(y).astype(int)
@@ -45,7 +46,7 @@ def Train():
     
     # ============= Experiment Parameters =============
     ckpt_dir_cls = config['cls_experiment']   
-    BATCH_SIZE = config['batch_size']
+    BATCH_SIZE = config['num_bins']
     EPOCHS = config['epochs']
     channels = config['num_channel']
     input_size = config['input_size'] 
@@ -56,14 +57,8 @@ def Train():
     lambda_cyc = config['lambda_cyc']
     lambda_cls = config['lambda_cls']  
     save_summary = int(config['save_summary'])
-    ckpt_dir_continue = config['ckpt_dir_continue'] 
-    if ckpt_dir_continue == '':
-        continue_train = False
-        sys.exit()
-    else:
-        ckpt_dir_continue = os.path.join(ckpt_dir_continue, 'ckpt_dir')
-        continue_train = True
-    
+    ckpt_dir_continue = ckpt_dir
+    count_to_save = config['count_to_save']
     # ============= Data =============
     try:
         categories, file_names_dict = read_data_file(config['image_label_dict'])
@@ -74,9 +69,6 @@ def Train():
     print("The classification categories are: ")
     print(categories)
     print('The size of the training set: ', data.shape[0])
-    fp = open(os.path.join(log_dir, 'setting.txt'), 'w')
-    fp.write('config_file:'+str(config_path)+'\n')
-    fp.close()
     
     # ============= placeholder =============
     x_source = tf.placeholder(tf.float32, [None, input_size, input_size, channels])
@@ -95,7 +87,7 @@ def Train():
     
     fake_target_img, fake_target_img_embedding = G(x_source, train_phase, y_target, NUMS_CLASS)
     fake_source_img, fake_source_img_embedding = G(fake_target_img, train_phase, y_source, NUMS_CLASS)
-    fake_source_recons_img, fake_source_recons_img_embedding = G(x_source, train_phase, y_source, NUMS_CLASS)    
+    fake_source_recons_img, x_source_img_embedding = G(x_source, train_phase, y_source, NUMS_CLASS)    
     fake_target_logits = D(fake_target_img, y_t, NUMS_CLASS, None)    
     
     # ============= pre-trained classifier =============      
@@ -103,65 +95,24 @@ def Train():
     fake_img_cls_logit_pretrained, fake_img_cls_prediction = pretrained_classifier(fake_target_img, NUMS_CLASS_cls, reuse=True)
     real_img_recons_cls_logit_pretrained, real_img_recons_cls_prediction = pretrained_classifier(fake_source_img, NUMS_CLASS_cls, reuse=True)
     
-    # ============= pre-trained classifier loss =============
-    real_p = tf.cast(y_target, tf.float32)*0.1 
-    fake_q = fake_img_cls_prediction[:,target_class] 
-    fake_evaluation = (real_p * tf.log(fake_q) ) + ( (1-real_p) * tf.log(1-fake_q) )
-    fake_evaluation = -tf.reduce_mean(fake_evaluation)
-    
-    recons_evaluation = (real_img_cls_prediction[:,target_class] * tf.log(real_img_recons_cls_prediction[:,target_class]) ) + ( (1-real_img_cls_prediction[:,target_class]) * tf.log(1-real_img_recons_cls_prediction[:,target_class]) )
-    recons_evaluation = -tf.reduce_mean(recons_evaluation)     
-    
-    # ============= Loss =============
-    D_loss_GAN = discriminator_loss('hinge', real_source_logits, fake_target_logits) 
-    G_loss_GAN = generator_loss('hinge', fake_target_logits)
-    G_loss_cyc = l1_loss(x_source, fake_source_img) 
-    G_loss_rec = l2_loss(fake_source_recons_img_embedding, fake_source_img_embedding) #+  l1_loss(x_source, fake_source_recons_img) 
-    G_loss = (G_loss_GAN * lambda_GAN) + (G_loss_rec * lambda_cyc) + (G_loss_cyc * lambda_cyc) + (fake_evaluation * lambda_cls) + (recons_evaluation * lambda_cls)
-    D_loss = (D_loss_GAN * lambda_GAN) 
-        
-    D_opt = tf.train.AdamOptimizer(2e-4, beta1=0., beta2=0.9).minimize(D_loss, var_list=D.var_list()) 
-    G_opt = tf.train.AdamOptimizer(2e-4, beta1=0., beta2=0.9).minimize(G_loss, var_list=G.var_list())
-    
-    # ============= summary =============
-    real_img_sum = tf.summary.image('real_img', x_source)
-    fake_img_sum = tf.summary.image('fake_target_img', fake_target_img)
-    fake_source_img_sum = tf.summary.image('fake_source_img', fake_source_img)
-    fake_source_recons_img_sum = tf.summary.image('fake_source_recons_img', fake_source_recons_img)
-    loss_g_sum = tf.summary.scalar('loss_g', G_loss)
-    loss_d_sum = tf.summary.scalar('loss_d', D_loss)
-    loss_g_GAN_sum = tf.summary.scalar('loss_g_GAN', G_loss_GAN)
-    loss_d_GAN_sum = tf.summary.scalar('loss_d_GAN', D_loss_GAN)
-    loss_g_cyc_sum = tf.summary.scalar('G_loss_cyc', G_loss_cyc)
-    G_loss_rec_sum = tf.summary.scalar('G_loss_rec', G_loss_rec)
-    
-    evaluation_fake = tf.summary.scalar('fake_evaluation', fake_evaluation)
-    evaluation_recons = tf.summary.scalar('recons_evaluation', recons_evaluation)
-    g_sum = tf.summary.merge([loss_g_sum, loss_g_GAN_sum, loss_g_cyc_sum, real_img_sum, G_loss_rec_sum, fake_img_sum, fake_source_recons_img_sum,evaluation_fake, evaluation_recons])
-    d_sum = tf.summary.merge([loss_d_sum, loss_d_GAN_sum])
-        
     # ============= session =============
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
-    
-    writer = tf.summary.FileWriter(log_dir, sess.graph)
-    
+
     # ============= Checkpoints =============
-    if continue_train :
-        print(" [*] before training, Load checkpoint ")
-        print(" [*] Reading checkpoint...")
-        
-        ckpt = tf.train.get_checkpoint_state(ckpt_dir_continue)   
-        if ckpt and ckpt.model_checkpoint_path:
-            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-            saver.restore(sess, os.path.join(ckpt_dir_continue, ckpt_name))
-            print(ckpt_dir_continue, ckpt_name)
-            print("Successful checkpoint upload")
-        else:
-            print("Failed checkpoint load")
+    print(" [*] before training, Load checkpoint ")
+    print(" [*] Reading checkpoint...")
+
+    ckpt = tf.train.get_checkpoint_state(ckpt_dir_continue)   
+    if ckpt and ckpt.model_checkpoint_path:
+        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+        saver.restore(sess, os.path.join(ckpt_dir_continue, ckpt_name))
+        print(ckpt_dir_continue, ckpt_name)
+        print("Successful checkpoint upload")
     else:
-        print(" [!] before training, no need to Load ")
+        print("Failed checkpoint load")
+        sys.exit()
 
     # ============= load pre-trained classifier checkpoint =============
     class_vars = [var for var in slim.get_variables_to_restore() if 'classifier' in var.name]
@@ -173,59 +124,81 @@ def Train():
     print("Classifier checkpoint loaded.................")
     print(ckpt_dir_cls, ckpt_name)
     
-    # ============= Training =============
-    counter = 1
-    for e in range(1, EPOCHS+1):
-        np.random.shuffle(data)        
-        for i in range(data.shape[0] // BATCH_SIZE):
-            image_paths = data[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
-            img, labels = load_images_and_labels(image_paths, '',1, file_names_dict, input_size, channels, do_center_crop=True)
+    # ============= Testing =============
+    real_img = np.empty([0])
+    fake_images = np.empty([0])
+    embedding = np.empty([0])
+    s_embedding = np.empty([0])
+    recons = np.empty([0])
+    real_pred = np.empty([0])
+    fake_pred = np.empty([0])
+    recons_pred = np.empty([0])
+    names = np.empty([0]) 
+    
+    np.random.shuffle(data)   
+    np.random.shuffle(data) 
+    np.random.shuffle(data) 
+    data = data[0:count_to_save]
+    for i in range(data.shape[0] // BATCH_SIZE):
+        image_paths = data[i*BATCH_SIZE:(i+1)*BATCH_SIZE]
+        img, labels = load_images_and_labels(image_paths, '',1, file_names_dict, input_size, channels, do_center_crop=True)
+        img_repeat = np.repeat(img, NUMS_CLASS, 0)
 
-            labels = labels.ravel()
-            labels = convert_ordinal_to_binary(labels,NUMS_CLASS)
-            target_labels = np.random.randint(0, high=NUMS_CLASS, size=BATCH_SIZE)
-            target_labels = convert_ordinal_to_binary(target_labels,NUMS_CLASS)
+        labels = labels.ravel()
+        labels = np.repeat(labels, NUMS_CLASS, 0)
+        source_labels = convert_ordinal_to_binary(labels,NUMS_CLASS)
+
+        target_labels = np.asarray([np.asarray(range(NUMS_CLASS)) for j in range(img.shape[0])])
+        target_labels = target_labels.ravel()
+        target_labels = convert_ordinal_to_binary(target_labels,NUMS_CLASS) 
+
+        FAKE_IMG, f_embed, recons_img, real_p, fake_p, recons_p, s_embed = sess.run([fake_target_img, fake_target_img_embedding, fake_source_img, real_img_cls_prediction, fake_img_cls_prediction, real_img_recons_cls_prediction,x_source_img_embedding], feed_dict={y_t: target_labels,  x_source: img_repeat, train_phase: False, y_s:source_labels})  
+        if i == 0:
+            real_img = img
+            fake_images = FAKE_IMG
+            embedding = f_embed
+            s_embedding = s_embed
+            recons = recons_img
+            names = np.asarray(image_paths)
+            real_pred = real_p
+            fake_pred = fake_p
+            recons_pred = recons_p           
+        else:
+            real_img = np.append(real_img, img, axis = 0)
+            fake_images =np.append(fake_images, FAKE_IMG, axis = 0)
+            embedding = np.append(embedding, f_embed, axis = 0)
+            s_embedding = np.append(s_embedding, f_embed, axis = 0)
+            recons = np.append(recons, recons_img, axis = 0)
+            names = np.append(names, np.asarray(image_paths), axis = 0)
+            real_pred = np.append(real_pred, real_p, axis = 0)
+            fake_pred = np.append(fake_pred, fake_p, axis = 0)
+            recons_pred = np.append(recons_pred, recons_p, axis = 0)
+        print(i)
+
+        if i % 100 == 0:
+            np.save(os.path.join(test_dir + '/real_img.npy'),   real_img     )
+            np.save(os.path.join(test_dir + '/fake_images.npy'),   fake_images     )
+            np.save(os.path.join(test_dir + '/embedding.npy'),   embedding     )
+            np.save(os.path.join(test_dir + '/s_embedding.npy'),   s_embedding     )
+            np.save(os.path.join(test_dir + '/recons.npy'),   recons     )
+            np.save(os.path.join(test_dir + '/names.npy'),   names     )
+            np.save(os.path.join(test_dir + '/real_pred.npy'),   real_pred     )    
+            np.save(os.path.join(test_dir + '/fake_pred.npy'),   fake_pred     )    
+            np.save(os.path.join(test_dir + '/recons_pred.npy'),   recons_pred     )   
+
+    np.save(os.path.join(test_dir + '/real_img.npy'),   real_img     )
+    np.save(os.path.join(test_dir + '/fake_images.npy'),   fake_images     )
+    np.save(os.path.join(test_dir + '/embedding.npy'),   embedding     )
+    np.save(os.path.join(test_dir + '/s_embedding.npy'),   s_embedding     )
+    np.save(os.path.join(test_dir + '/recons.npy'),   recons     )
+    np.save(os.path.join(test_dir + '/names.npy'),   names     )
+    np.save(os.path.join(test_dir + '/real_pred.npy'),   real_pred     )    
+    np.save(os.path.join(test_dir + '/fake_pred.npy'),   fake_pred     )    
+    np.save(os.path.join(test_dir + '/recons_pred.npy'),   recons_pred     ) 
+
+
+
             
-            _, d_loss, summary_str = sess.run([D_opt, D_loss, d_sum], feed_dict={y_t:target_labels, x_source: img, train_phase: True, y_s: labels})
-            writer.add_summary(summary_str, counter)
-
-            if (i+1) % 5 == 0:
-                _, g_loss, summary_str = sess.run([G_opt,G_loss, g_sum], feed_dict={y_t: target_labels, x_source: img, train_phase: True, y_s: labels})
-                writer.add_summary(summary_str, counter)
-            
-            counter += 1
-
-            def save_results(sess,step):                
-                img, labels = load_images_and_labels(image_paths[0:8], '',1, file_names_dict, input_size, channels, do_center_crop=True) 
-                labels = labels.ravel()
-                img_repeat = np.repeat(img, NUMS_CLASS, 0)
-                
-                target_labels = np.asarray([np.asarray(range(NUMS_CLASS)) for j in range(img.shape[0])])
-                target_labels = target_labels.ravel()
-                target_labels = convert_ordinal_to_binary(target_labels,NUMS_CLASS) 
-                
-                FAKE_IMG, fake_logits_ = sess.run([fake_target_img, fake_target_logits], feed_dict={y_t: target_labels,  x_source: img_repeat, train_phase: False})
-                
-                output_fake_img = np.reshape(FAKE_IMG, [-1, NUMS_CLASS, input_size, input_size, channels])                             
-                # save samples
-                sample_file = os.path.join(sample_dir, '%06d_1.jpg'%(step))
-                save_images(output_fake_img[0], output_fake_img[1], output_fake_img[2], output_fake_img[3], sample_file)
-                sample_file = os.path.join(sample_dir, '%06d_2.jpg'%(step))
-                save_images(output_fake_img[4], output_fake_img[5], output_fake_img[6], output_fake_img[7], sample_file)
-
-                
-                np.save(sample_file.split('.jpg')[0] + '_y.npy' , labels)
-
-            if counter % save_summary == 0:
-                save_results(sess, counter)
-                #print(counter, i, e, g_loss, d_loss)
-
-            if counter % 500 == 0:
-                saver.save(sess, ckpt_dir + "/model%2d.ckpt" % counter)
-            
-            if counter > 100000:
-                saver.save(sess, ckpt_dir + "/model%2d.ckpt" % counter)
-                sys.exit()
 
 if __name__ == "__main__":
     Train()
