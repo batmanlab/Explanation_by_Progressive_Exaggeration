@@ -54,3 +54,8 @@ python train_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
 ```
 ./notebooks/Test_Explainer.ipynb
 ```
+
+6. Save results of the trained Explanation model for quantitative experiments.
+```
+python test_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
+```
