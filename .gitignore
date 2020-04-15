@@ -1,6 +1,5 @@
 startupjupyter
 *.pyc
-output/
 .ipynb_checkpoints/
 *.zip
 *.npy
