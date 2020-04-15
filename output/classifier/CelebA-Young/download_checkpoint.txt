@@ -1,0 +1,2 @@
+Download and extract the contents of  CelebA-Young-Classifier-Checkpoint.zip from 
+https://osf.io/8k9hx/?view_only=d7f65f2979364b2a99e9eebce6ddd087
