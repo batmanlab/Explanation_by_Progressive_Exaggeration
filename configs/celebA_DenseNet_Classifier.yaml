@@ -2,17 +2,17 @@
 # Classifier #
 ###########
 
-image_dir: '/pghbio/dbmi/batmanlab/singla/MICCAI_2019/GAN_Interpretability/data/celebA/images' #'./data/CelebA/images/'
-image_label_dict: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/list_attr_celeba.txt'
-train: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/train_ids.npy'
-test: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/data/CelebA/test_ids.npy'
+image_dir: './data/celebA/images' #'./data/CelebA/images/'
+image_label_dict: './data/CelebA/list_attr_celeba.txt'
+train: './data/CelebA/train_ids.npy'
+test: './data/CelebA/test_ids.npy'
 
-log_dir: '/pghbio/dbmi/batmanlab/singla/Explanation_by_Progressive_Exaggeration/output/classifier/CelebA'
-name: 'DenseNet-121'
+log_dir: './output/classifier/CelebA'
+name: 'DenseNet'
 
 num_channel: 3
 input_size: 128
-num_classes: 14
+num_classes: 40
 batch_size: 32
 epochs: 10
 ckpt_dir_continue: ''
