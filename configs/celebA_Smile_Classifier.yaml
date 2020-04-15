@@ -2,7 +2,7 @@
 # Classifier #
 ###########
 
-image_dir: '/pghbio/dbmi/batmanlab/singla/MICCAI_2019/GAN_Interpretability/data/celebA/images' #'./data/CelebA/images/'
+image_dir: './data/CelebA/images/'
 image_label_dict: './data/CelebA/Smiling_binary_classification.txt'
 train: './data/CelebA/train_ids.npy'
 test: './data/CelebA/test_ids.npy'
