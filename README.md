@@ -60,7 +60,10 @@ python train_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
 python test_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
 ```
 
-
+7. Use the saved results to perform experiments as shown in paper
+```
+./notebooks/Experiment_CelebA.ipynb 
+```
 # Cite
 
 ```
