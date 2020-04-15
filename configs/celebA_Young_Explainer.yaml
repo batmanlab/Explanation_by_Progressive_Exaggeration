@@ -1,8 +1,6 @@
 ###########
 # Classifier #
 ###########
-
-image_dir: '/pghbio/dbmi/batmanlab/singla/MICCAI_2019/GAN_Interpretability/data/celebA/images' #'./data/CelebA/images/'
 image_label_dict: './output/classifier/CelebA-Young/explainer_input/list_attr_celeba_Young.txt' #path where the training data as [image name, label] is saved. Here label is the bin-index. Refer ../notebooks/Process_Classifier_Output.ipynb to see how to create this file from the classifier results.
 cls_experiment: './output/classifier/CelebA-Young' #address where classifier checkpoint is saved
 log_dir: './output/explainer' #address where explainer checkpoint and summaries will be saved
