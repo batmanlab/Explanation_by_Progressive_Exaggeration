@@ -59,3 +59,17 @@ python train_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
 ```
 python test_explainer.py --config 'configs/celebA_Young_Explainer.yaml'
 ```
+
+
+# Cite
+
+```
+@inproceedings{
+Singla2020Explanation,
+title={Explanation  by Progressive  Exaggeration},
+author={Sumedha Singla and Brian Pollack and Junxiang Chen and Kayhan Batmanghelich},
+booktitle={International Conference on Learning Representations},
+year={2020},
+url={https://openreview.net/forum?id=H1xFWgrFPS}
+}
+```
